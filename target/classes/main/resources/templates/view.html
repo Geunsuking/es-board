@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>상세 보기</title>
+</head>
+<body>
+<h1 th:text="${post.title}">제목이 나옵니다</h1>
+<hr>
+<p><strong>작성자:</strong> <span th:text="${post.author}">작성자</span></p>
+<p><span>작성일: </span>
+   <span th:text="${#temporals.format(post.createdAt, 'yyyy-MM-dd HH:mm')}">
+       2026-03-09 14:30</span></p>
+<hr>
+<div style="min-height: 200px; border: 1px solid #ccc; padding: 10px;">
+    <p th:text="${post.content}">내용이 나옵니다</p>
+</div>
+<hr>
+<a href="/api/board/list">목록으로 돌아가기</a>
+</body>
+</html>

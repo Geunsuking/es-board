@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>글쓰기/수정</title>
+    <style>
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input, textarea { width: 100%; padding: 8px; box-sizing: border-box; }
+        .btn-submit { padding: 10px 20px; background-color: #007bff; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+<h2 th:text="${post == null ? '새 글 등록' : '글 수정하기'}">게시판</h2>
+
+<form th:action="${post == null ? '/api/board/save' : '/api/board/update'}" method="post">
+
+    <input type="hidden" name="id" th:value="${post?.id}">
+
+    <div class="form-group">
+        <label>제목</label>
+        <input type="text" name="title" th:value="${post?.title}" placeholder="제목을 입력하세요" required>
+    </div>
+    <div class="form-group">
+        <label>작성자</label>
+        <input type="text" name="author" th:value="${post?.author}" placeholder="이름" required>
+    </div>
+    <div class="form-group">
+        <label>내용</label>
+        <textarea name="content" th:text="${post?.content}" placeholder="내용을 작성하세요" rows="10" required></textarea>
+    </div>
+    <button type="submit" class="btn-submit" th:text="${post == null ? '등록하기' : '수정완료'}"></button>
+    <a href="/api/board/list">취소</a>
+</form>
+</body>
+</html>
