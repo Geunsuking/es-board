@@ -43,6 +43,14 @@
         .btn-edit:hover { background-color: #000; color: white; }
         .btn-delete { background-color: #fff; color: #e74c3c; border: 1px solid #e74c3c; }
         .btn-delete:hover { background-color: #ffedeb; }
+
+        /* 댓글 액션 스타일 */
+        .comment-actions { font-size: 12px; margin-left: 10px; }
+        .comment-actions a { color: #b2bec3; text-decoration: none; cursor: pointer; margin-left: 5px; }
+        .comment-actions a:hover { color: #636e72; text-decoration: underline; }
+
+        /* 수정 영역 스타일 */
+        .edit-area { display: none; margin-top: 10px; background: #f9f9f9; padding: 15px; border-radius: 8px; }
     </style>
 </head>
 <body>
@@ -53,22 +61,17 @@
         <div class="view-info">
             <span class="info-item"><b>작성자</b> <span th:text="${board.author}">작성자</span></span>
             <span class="info-item"><b>등록일</b> <span th:text="${#temporals.format(board.createdAt, 'yyyy-MM-dd HH:mm')}">날짜</span></span>
-            <span style="margin-left: 15px;">
-        <i class="bi bi-eye"></i> 조회수: <b th:text="${board.views}">0</b>
-    </span>
+            <span style="margin-left: 15px;">조회수: <b th:text="${board.views}">0</b></span>
         </div>
     </div>
 
-    <div class="view-content" th:if="${board != null}" th:text="${board.content}">
-        내용
-    </div>
+    <div class="view-content" th:if="${board != null}" th:text="${board.content}">내용</div>
 
     <div class="btn-group-custom">
         <a href="/api/board/list" class="btn btn-list">목록으로</a>
         <div th:if="${board != null}">
             <a th:href="@{/api/board/edit/{id}(id=${board.id})}" class="btn btn-edit me-2">수정</a>
-            <button type="button" class="btn btn-delete"
-                    th:onclick="deleteBoard([[${board.id}]])">삭제</button>
+            <button type="button" class="btn btn-delete" th:onclick="deleteBoard([[${board.id}]])">삭제</button>
         </div>
     </div>
 
@@ -81,26 +84,34 @@
             첫 번째 댓글을 남겨보세요!
         </div>
 
-        <div th:each="c : ${comments}" class="py-3 border-bottom shadow-sm-hover" style="transition: background 0.2s;">
+        <div th:each="c : ${comments}" class="py-3 border-bottom" th:id="'comment-row-' + ${c.id}">
             <div class="d-flex justify-content-between align-items-center mb-1">
-                <strong class="text-dark" th:text="${c.author}" style="font-size: 1rem;">작성자</strong>
+                <div>
+                    <strong class="text-dark" th:text="${c.author}">작성자</strong>
+                    <span class="comment-actions">
+                        <a th:onclick="toggleEditMode([[${c.id}]])">수정</a>
+                        <a th:onclick="deleteComment([[${c.id}]])" class="text-danger">삭제</a>
+                    </span>
+                </div>
                 <small class="text-muted" th:text="${#temporals.format(c.createdAt, 'yyyy-MM-dd HH:mm')}">시간</small>
             </div>
 
-            <div th:if="${c.imageUrl != null}" class="my-2">
-                <img th:src="${c.imageUrl}" alt="첨부 이미지"
-                     style="max-width: 300px; height: auto; border-radius: 8px; border: 1px solid #eee; display: block;">
-            </div>
+            <p th:id="'comment-text-' + ${c.id}" class="mb-0 text-secondary" style="line-height: 1.6; white-space: pre-wrap;" th:text="${c.content}">댓글 내용</p>
 
-            <p class="mb-0 text-secondary" style="line-height: 1.6; white-space: pre-wrap;" th:text="${c.content}">댓글 내용</p>
+            <div th:id="'comment-edit-area-' + ${c.id}" class="edit-area">
+                <textarea th:id="'comment-input-' + ${c.id}" class="form-control mb-2" rows="2" th:text="${c.content}"></textarea>
+                <div class="text-end">
+                    <button type="button" class="btn btn-sm btn-outline-secondary me-1" th:onclick="toggleEditMode([[${c.id}]])">취소</button>
+                    <button type="button" class="btn btn-sm btn-primary" th:onclick="updateComment([[${c.id}]])">저장</button>
+                </div>
+            </div>
         </div>
     </div>
 
     <div class="comment-form mt-4 p-4 bg-light rounded-3 border">
         <h6 class="mb-3 fw-bold">댓글 남기기</h6>
-        <form th:action="@{/api/board/comment/add}" method="post" enctype="multipart/form-data">
+        <form th:action="@{/api/board/comment/add}" method="post">
             <input type="hidden" name="boardId" th:value="${board.id}">
-
             <div class="row g-2">
                 <div class="col-md-3">
                     <input type="text" name="author" class="form-control shadow-sm" placeholder="작성자" required>
@@ -108,48 +119,74 @@
                 <div class="col-md-7">
                     <input type="text" name="content" class="form-control shadow-sm" placeholder="내용을 입력하세요" required>
                 </div>
-
-                <div class="col-md-10 mt-2">
-                    <input type="file" name="file" class="form-control form-control-sm shadow-sm">
-                </div>
-
-                <div class="col-md-2 mt-2">
+                <div class="col-md-2">
                     <button type="submit" class="btn btn-primary w-100 shadow-sm fw-bold">등록</button>
                 </div>
             </div>
         </form>
     </div>
-
 </div>
 
 <script th:inline="javascript">
-    document.addEventListener('DOMContentLoaded', function() {
-        const deleteBtn = document.getElementById('deleteBtn');
-        if (deleteBtn) {
-            deleteBtn.addEventListener('click', function() {
-                const id = this.getAttribute('data-id'); // 버튼에 숨겨둔 ID 추출
-                deleteBoard(id);
-            });
-        }
-    });
-
+    // 게시글 삭제
     function deleteBoard(id) {
-        if (!id) return;
-        if (confirm("정말로 이 게시글을 삭제하시겠습니까?")) {
-            fetch('/api/board/delete/' + id, {
-                method: 'DELETE'
-            }).then(response => {
+        if (!id || !confirm("정말로 이 게시글을 삭제하시겠습니까?")) return;
+        fetch('/api/board/delete/' + id, { method: 'DELETE' })
+            .then(response => {
                 if (response.ok) {
                     alert("삭제되었습니다.");
                     location.href = '/api/board/list';
-                } else {
-                    alert("삭제에 실패했습니다.");
-                }
-            }).catch(err => {
-                console.error(err);
-                alert("에러가 발생했습니다.");
+                } else { alert("삭제 실패!"); }
             });
+    }
+
+    // 댓글 삭제
+    function deleteComment(commentId) {
+        if (!confirm("댓글을 삭제하시겠습니까?")) return;
+        fetch('/api/board/comment/delete/' + commentId, { method: 'POST' })
+            .then(response => {
+                if (response.ok) location.reload();
+                else alert("삭제에 실패했습니다.");
+            });
+    }
+
+    // 수정 모드 껏다 켰다 하기
+    function toggleEditMode(commentId) {
+        const textP = document.getElementById('comment-text-' + commentId);
+        const editDiv = document.getElementById('comment-edit-area-' + commentId);
+
+        // 현재 숨겨져 있으면 보이게, 보이고 있으면 숨기게
+        if (editDiv.style.display === 'none' || editDiv.style.display === '') {
+            textP.style.display = 'none';
+            editDiv.style.display = 'block';
+        } else {
+            textP.style.display = 'block';
+            editDiv.style.display = 'none';
         }
+    }
+
+    // 실제 댓글 수정 처리
+    function updateComment(commentId) {
+        const input = document.getElementById('comment-input-' + commentId);
+        const newContent = input.value;
+
+        if (!newContent.trim()) {
+            alert("내용을 입력해주세요.");
+            return;
+        }
+
+        const formData = new URLSearchParams();
+        formData.append("content", newContent);
+
+        fetch('/api/board/comment/update/' + commentId, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData
+        }).then(response => {
+            if (response.ok) {
+                location.reload();
+            } else { alert("수정에 실패했습니다."); }
+        });
     }
 </script>
 </body>

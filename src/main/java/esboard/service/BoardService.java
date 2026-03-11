@@ -163,10 +163,22 @@ public class BoardService {
     // 4. 삭제
     public void delete(String id) {
         try {
+            // [1] 게시글 삭제 (Elasticsearch RestHighLevelClient 사용)
             DeleteRequest request = new DeleteRequest("board", id);
             request.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
             client.delete(request, RequestOptions.DEFAULT);
+
+            // [2] 해당 게시글의 댓글들 삭제 (Spring Data Repository 사용)
+            // 게시글 ID(boardId)가 삭제하려는 게시글의 id와 일치하는 댓글들을 모두 가져옵니다.
+            List<CommentItem> comments = commentRepository.findByBoardId(id);
+
+            if (comments != null && !comments.isEmpty()) {
+                commentRepository.deleteAll(comments); // 찾은 댓글 뭉치를 한꺼번에 삭제!
+                System.out.println("🗑️ 게시글 [" + id + "]의 댓글 " + comments.size() + "건이 함께 삭제되었습니다.");
+            }
+
         } catch (Exception e) {
+            System.err.println("삭제 중 오류 발생: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -200,5 +212,35 @@ public class BoardService {
 
 
         return commentRepository.findByBoardId(boardId); // 실제 Repository가 있다면 이렇게!
+    }
+    public void deleteComment(String commentId) {
+        try {
+            // Spring Data Elasticsearch Repository를 사용하여 ID로 바로 삭제합니다.
+            commentRepository.deleteById(commentId);
+            System.out.println("🗑️ 댓글 삭제 완료: " + commentId);
+        } catch (Exception e) {
+            System.err.println("댓글 삭제 중 오류 발생: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    // 4. 댓글 수정 기능
+    public void updateComment(String commentId, String newContent) {
+        try {
+            // 1. 먼저 해당 ID의 댓글이 있는지 찾아봅니다.
+            commentRepository.findById(commentId).ifPresent(comment -> {
+                // 2. 내용만 새 내용으로 바꿉니다.
+                comment.setContent(newContent);
+                // 3. 수정 시간을 현재로 업데이트합니다. (선택 사항)
+                comment.setCreatedAt(LocalDateTime.now());
+
+                // 4. 다시 저장(save)하면 엘라스틱서치가 알아서 업데이트(Upsert) 해줍니다.
+                commentRepository.save(comment);
+                System.out.println("✏️ 댓글 수정 완료: " + commentId);
+            });
+        } catch (Exception e) {
+            System.err.println("댓글 수정 중 오류 발생: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }

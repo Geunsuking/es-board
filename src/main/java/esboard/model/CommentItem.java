@@ -20,8 +20,6 @@ public class CommentItem {
     private String author;      // 댓글 작성자
     private String content;     // 댓글 내용
 
-    private String imageUrl;
-
     @Field(type = FieldType.Date, format = DateFormat.date_hour_minute_second_millis)
     private LocalDateTime createdAt;
 }

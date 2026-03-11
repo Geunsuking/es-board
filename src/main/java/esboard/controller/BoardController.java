@@ -25,14 +25,17 @@ public class BoardController {
     @PostMapping("/save")
     public String savePost(@ModelAttribute BoardItem item) {
         try {
-            item.setCreatedAt(LocalDateTime.now());
+            // [중요] 나노초를 지우는 대신, 밀리초 1을 강제로 넣어 형식을 맞춥니다.
+            // .withNano(1000000) 은 딱 1밀리초를 의미합니다.
+            // 이렇게 하면 2026-03-11T15:08:33.001 처럼 생성되어 형식이 완벽히 맞습니다.
+            item.setCreatedAt(LocalDateTime.now().withNano(1000000));
 
             boardService.save(item);
 
             return "redirect:/api/board/list";
         } catch (Exception e) {
             e.printStackTrace();
-            return "error"; // 에러 시 에러 페이지로 (나중에 만듦)
+            return "error";
         }
     }
 
@@ -99,19 +102,21 @@ public class BoardController {
     }
     @PostMapping("/edit/{id}")
     public String updateBoard(@PathVariable String id, @ModelAttribute BoardItem updateData) throws Exception {
-        // 1. 기존 데이터를 먼저 불러옵니다 (기존 조회수를 지키기 위해)
+        // 1. 기존 데이터를 먼저 불러옵니다.
         BoardItem originItem = boardService.findById(id);
 
         if (originItem != null) {
-            // 2. 바꿀 내용만 교체합니다.
+            // 2. 바꿀 내용들을 교체합니다.
             originItem.setTitle(updateData.getTitle());
             originItem.setContent(updateData.getContent());
-            // 작성자는 보통 안 바꾸지만 원하시면 추가: originItem.setAuthor(updateData.getAuthor());
 
-            // 3. originItem에는 이미 기존 views가 들어있으므로 그대로 저장!
+            // [여기가 핵심!] 작성자 필드도 업데이트되도록 이 줄을 추가하세요.
+            originItem.setAuthor(updateData.getAuthor());
+
+            // 3. 기존 조회수(views)와 시간은 그대로 유지된 채 저장됩니다.
             boardService.save(originItem);
         }
-        return "redirect:/api/board/list/";
+        return "redirect:/api/board/list";
     }
 
     // 2. 수정 처리
@@ -154,33 +159,28 @@ public class BoardController {
         }
     }
     @PostMapping("/comment/add")
-    public String addComment(@ModelAttribute CommentItem comment,
-                             @RequestParam(value = "file", required = false) org.springframework.web.multipart.MultipartFile file) throws java.io.IOException {
+    public String addComment(@ModelAttribute CommentItem comment) {
+        // 파일 관련 파라미터(MultipartFile)와 저장 로직을 모두 지웠습니다.
 
-        // 1. 파일이 넘어왔는지 확인하고 서버에 저장합니다.
-        if (file != null && !file.isEmpty()) {
-            String uploadDir = "C:/uploads/"; // 실제 파일이 저장될 물리적 경로
-
-            // 폴더가 없으면 생성
-            java.io.File dir = new java.io.File(uploadDir);
-            if (!dir.exists()) dir.mkdirs();
-
-            // 파일명 중복을 피하기 위해 UUID를 붙입니다.
-            String fileName = java.util.UUID.randomUUID() + "_" + file.getOriginalFilename();
-            java.io.File saveFile = new java.io.File(uploadDir + fileName);
-
-            // 파일을 지정된 경로에 실제로 저장
-            file.transferTo(saveFile);
-
-            // 2. DB(Elasticsearch)에 저장할 수 있게 CommentItem에 파일 경로를 넣어줍니다.
-            // (미리 CommentItem 클래스에 imageUrl 필드를 만들어둬야 합니다!)
-            comment.setImageUrl("/uploads/" + fileName);
-        }
-
-        // 3. 서비스에게 댓글(이미지 경로 포함) 저장을 시킵니다.
+        // 1. 서비스에게 댓글 저장만 시킵니다.
         boardService.saveComment(comment);
 
-        // 4. 원래 보던 상세 페이지로 이동
+        // 2. 저장이 끝나면 다시 보던 상세 페이지로 돌아갑니다.
         return "redirect:/api/board/view/" + comment.getBoardId();
+    }
+    // 1. 댓글 삭제 요청 처리 (주소 앞에 /api/board 추가 완료)
+    @PostMapping("/comment/delete/{commentId}")
+    @ResponseBody
+    public String deleteComment(@PathVariable String commentId) {
+        boardService.deleteComment(commentId);
+        return "success";
+    }
+
+    // 2. 댓글 수정 요청 처리 (주소 앞에 /api/board 추가!)
+    @PostMapping("/comment/update/{commentId}")
+    @ResponseBody
+    public String updateComment(@PathVariable String commentId, @RequestParam String content) {
+        boardService.updateComment(commentId, content);
+        return "success";
     }
 }
