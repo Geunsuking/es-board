@@ -108,23 +108,23 @@
         </div>
     </div>
 
-    <div class="comment-form mt-4 p-4 bg-light rounded-3 border">
-        <h6 class="mb-3 fw-bold">댓글 남기기</h6>
-        <form th:action="@{/api/board/comment/add}" method="post">
-            <input type="hidden" name="boardId" th:value="${board.id}">
-            <div class="row g-2">
-                <div class="col-md-3">
-                    <input type="text" name="author" class="form-control shadow-sm" placeholder="작성자" required>
-                </div>
-                <div class="col-md-7">
-                    <input type="text" name="content" class="form-control shadow-sm" placeholder="내용을 입력하세요" required>
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100 shadow-sm fw-bold">등록</button>
-                </div>
-            </div>
-        </form>
-    </div>
+	<div class="comment-form mt-4 p-4 bg-light rounded-3 border">
+	    <h6 class="mb-3 fw-bold">댓글 남기기</h6>
+	    <form th:action="@{/api/board/comment/add}" method="post">
+	        <input type="hidden" name="boardId" th:value="${board.id}">
+	        <div class="row g-2 align-items-center">
+	            <div class="col-md-3">
+	                <input type="text" name="author" class="form-control shadow-sm" placeholder="작성자" required>
+	            </div>
+	            <div class="col-md-7">
+	                <input type="text" name="content" class="form-control shadow-sm" placeholder="내용을 입력하세요" required>
+	            </div>
+	            <div class="col-md-2">
+	                <button type="submit" class="btn btn-primary w-100 shadow-sm fw-bold py-0" style="height: 38px;">등록</button>
+	            </div>
+	        </div>
+	    </form>
+	</div>
 </div>
 
 <script th:inline="javascript">

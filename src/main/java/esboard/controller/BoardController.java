@@ -16,12 +16,18 @@ import java.util.List;
 import java.util.Map;
 
 @Controller
-@RequestMapping("/api/board")
+@RequestMapping({"/", "/api/board"})
 public class BoardController {
 
     @Autowired
     private BoardService boardService;
 
+    @GetMapping("/")
+    public String home() {
+        // 사용자가 / 로 들어오면 /api/board 로 강제 이동시켜!
+        return "redirect:/api/board/list";
+    }
+    
     @PostMapping("/save")
     public String savePost(@ModelAttribute BoardItem item) {
         try {
@@ -46,7 +52,7 @@ public class BoardController {
     }
     // BoardController.java
 
-    @GetMapping({"/", "/list"})
+    @GetMapping("/list")
     public String listPage(
             Model model,
             @RequestParam(value = "page", defaultValue = "0") int page,
